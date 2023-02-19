@@ -17,7 +17,7 @@ class Person(db.Model):
 
     def toDict(self):
         json_dict = {
-            "id": self.id,
+            "id": str(self.id),
             "description": self.description,
             "address": self.address,
             "lat": self.lat,
@@ -38,3 +38,16 @@ class NGO(db.Model):
     lon = db.Column(db.String(100), nullable = True)
     created_at = db.Column(db.DateTime,default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime,default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    def toDict(self):
+        json_dict = {
+            "id": str(self.id),
+            "name": self.name,
+            "email": self.email,
+            "address": self.address,
+            "lat": self.lat,
+            "lon": self.lon,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
+        }
+        return json_dict

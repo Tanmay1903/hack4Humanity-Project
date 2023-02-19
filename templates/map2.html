@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+
+        <style>
+            #map {
+                height: 800px; 
+                width: 100%;
+            }
+            .card {
+                box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+                transition: 0.3s;
+                border-radius: 5px; 
+                height: 100px;
+                margin : 10px;
+                padding : 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="row">
+            <div class="col-sm-3" style="height: 100vh; overflow: auto;">
+                {% for person in persons %}
+                <div class="row">
+                    <div class="card">
+                        <div class="container" style="padding: 4px;">
+                            Address: {{person.address}}<br>
+                            Lat: {{person.lat}} | Lon: {{person.lon}} <br>
+                            Description: {{person.description}}                            
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="col-sm-9">
+                <div id="map"></div>
+                <script type="text/javascript">
+                    const locations = [[37.385907, -122.019612], [37.233782, -121.972198], [37.410431, -122.063017], [37.478896, -122.173677], [37.311797, -121.897411], [37.425893,-121.899735], [37.319763, -122.047031], [37.349301, -121.937409]];
+                    let pin = {lat: 0, lng:0};
+                    let map;
+                    let pos;
+                    let yourCircle;
+                    function initMap(){
+                        const uluru = {lat: 37.3706687, lng: -122.002572};
+                        map = new google.maps.Map(document.getElementById("map"), {
+                            zoom : 12, 
+                            center: uluru,
+                            streetViewControl: false,
+                            draggableCursor: "crosshair"
+                            }
+                        );
+                        infoWindow = new google.maps.InfoWindow();
+                        const locationButton = document.createElement("button");
+                        locationButton.style.backgroundColor = '#71A371';
+                        locationButton.style.color = '#004445';
+                        locationButton.style.marginTop = '10px';
+                        locationButton.style.height = '40px';
+                        locationButton.style.borderRadius = '5px'; 
+                        locationButton.style.fontSize = '20px';
+
+                        var iconBase = 'https://maps.google.com/mapfiles/kml/shapes/';
+                        var icons = {
+                            icon: iconBase + 'parking_lot_maps.png'
+                        };
+
+                        var i, marker;
+                        for (i = 0; i < locations.length; i++) {  
+                            marker = new google.maps.Marker({
+                                position: new google.maps.LatLng(parseFloat(locations[i][0]), parseFloat(locations[i][1])), 
+                                map: map, 
+                            });
+                        }
+                        // let marker = new google.maps.Marker({position: locations[1], map: map, icon: icons["icon"],
+                        // });
+
+                        google.maps.event.addListener(marker, 'click', (function(marker, i) {
+                            return function() {
+                            infowindow.setContent(locations[i][0]);
+                            infowindow.open(map, marker);
+                            }
+                        })(marker, i));
+
+                        locationButton.textContent = "Pan to Current Location";
+                        locationButton.classList.add("custom-map-control-button");
+                        map.controls[google.maps.ControlPosition.TOP_CENTER].push(locationButton);
+                        locationButton.addEventListener("click", () => {
+                            // Try HTML5 geolocation.
+                            if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    pos = {
+                                        lat: position.coords.latitude,
+                                        lng: position.coords.longitude,
+                                    };
+
+                                    infoWindow.setPosition(pos);
+                                    infoWindow.setContent("Location found.");
+                                    pin = pos;
+                                    console.log("lat: "+pos.lat);
+                                    infoWindow.open(map);
+                                    map.setCenter(pos);
+                                    let marker = new google.maps.Marker({position: pos, map: map,  
+                                    });
+                                    map.setZoom(15);
+                                    // yourCircle = new google.maps.Circle({
+                                    //     strokeColor: "#FF0000",
+                                    //     strokeOpacity: 0.8,
+                                    //     strokeWeight: 2,
+                                    //     fillColor: "#FF0000",
+                                    //     fillOpacity: 0.25,
+                                    //     map,
+                                    //     center: pos,
+                                    //     radius: 1000,
+                                    //     clickable:true,
+                                    // });
+                                },
+                                () => {
+                                handleLocationError(true, infoWindow, map.getCenter());
+                                }
+                            );
+                            } else {
+                            // Browser doesn't support Geolocation
+                            handleLocationError(false, infoWindow, map.getCenter());
+                            }
+                        });
+                        window.initMap = initMap;
+                        // initialiseSpots();
+
+                        google.maps.event.addListener(map, 'click', function( event ){
+                            pin = {
+                                lat: event.latLng.lat(),
+                                lng: event.latLng.lng()
+                            };
+                            alert( "Latitude: "+pin.lat+" "+", longitude: "+pin.lng ); 
+                            let rev_geocode = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='+pin.lat+','+pin.lng+'&key=AIzaSyBQ0BaHgPmtPiIYxqldB3DK-t8jl9Brq7M';
+                            let pin_json = fetch(rev_geocode)
+                                .then(response => response.text())
+                                .then(text => console.log(text));
+                            
+                        });
+
+                        }
+
+                        function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+                                infoWindow.setPosition(pos);
+                                infoWindow.setContent(
+                                    browserHasGeolocation
+                                    ? "Error: The Geolocation service failed."
+                                    : "Error: Your browser doesn't support geolocation."
+                                );
+                                infoWindow.open(map);
+                        }
+
+                        // function calcClosestSpots() {
+                        //     var i;
+                        //     for (i = 0; i < locations.length; i++) { 
+                        //         d = haversine_distance(pos, new google.maps.LatLng(locations[i][0], locations[i][1]));
+                        //         if d 
+                        //     }
+                        // }
+
+                        function haversine_distance(mk1, mk2) {
+                            var R = 3958.8; // Radius of the Earth in miles
+                            var rlat1 = mk1.position.lat() * (Math.PI/180); // Convert degrees to radians
+                            var rlat2 = mk2.position.lat() * (Math.PI/180); // Convert degrees to radians
+                            var difflat = rlat2-rlat1; // Radian difference (latitudes)
+                            var difflon = (mk2.position.lng()-mk1.position.lng()) * (Math.PI/180); // Radian difference (longitudes)
+
+                            var d = 2 * R * Math.asin(Math.sqrt(Math.sin(difflat/2)*Math.sin(difflat/2)+Math.cos(rlat1)*Math.cos(rlat2)*Math.sin(difflon/2)*Math.sin(difflon/2)));
+                            return d;
+                        }
+
+                </script>
+                <script async
+                    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBQ0BaHgPmtPiIYxqldB3DK-t8jl9Brq7M&callback=initMap">
+                </script>
+                </div>
+            </div>
+    </body>
+</html>
